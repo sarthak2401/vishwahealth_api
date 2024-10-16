@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        .chat-container {
+            width: 50%;
+            margin: 0 auto;
+        }
+
+        .chat-box {
+            border: 1px solid #ccc;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin: 10px 0;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.bot {
+            text-align: left;
+        }
+
+        .button-container {
+            margin: 10px 0;
+        }
+
+        .option-button {
+            padding: 10px;
+            margin: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .option-button:hover {
+            background-color: #0056b3;
+        }
+
+        .selected {
+            background-color: #28a745 !important;  /* Selected buttons will be green */
+        }
+
+        #input-box {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        #submit-button {
+            padding: 10px;
+            margin: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will go here -->
+        </div>
+        <div class="button-container" id="button-container"></div>
+        <input type="text" id="input-box" placeholder="Type a message..." style="display: none;" />
+        <button id="submit-button" style="display: none;" onclick="submitSelectedOptions()">Submit</button>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const buttonContainer = document.getElementById('button-container');
+        const inputBox = document.getElementById('input-box');
+        const submitButton = document.getElementById('submit-button');
+        let selectedOptions = [];
+        let userId = '';
+
+        // Add message to chat box
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+            messageDiv.textContent = content;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+        }
+
+        // Send a message to the backend
+        function sendMessage(message) {
+            addMessage(message, 'user');
+            inputBox.value = '';
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message, user_id: userId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                userId = data.user_id; // Keep track of user_id
+                addMessage(data.response, 'bot');
+                handleOptions(data.response); // Handle button-based options if any
+            });
+        }
+
+        // Handle response that may include buttons (Yes/No or multiple options)
+        function handleOptions(response) {
+            buttonContainer.innerHTML = ''; // Clear previous buttons
+            selectedOptions = [];  // Clear selected options
+
+            if (response.includes('Options:')) {
+                const optionsText = response.split('Options: ')[1];  // Extract options from response
+                const options = optionsText.split(', ');  // Split options into an array
+
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-button');
+                    // Convert all button text to lowercase before sending
+                    button.addEventListener('click', () => sendMessage(option.toLowerCase()));
+                    buttonContainer.appendChild(button);
+                });
+
+                // Show the submit button only for multi-select questions (like symptoms)
+                if (response.includes('symptoms')) {
+                    submitButton.style.display = 'block';
+                } else {
+                    submitButton.style.display = 'none';
+                }
+
+                inputBox.style.display = 'none';  // Hide the input box when buttons are present
+            } else {
+                inputBox.style.display = 'block';  // Show the input box for free text response
+                submitButton.style.display = 'none';  // Hide the submit button for single input
+            }
+        }
+
+        // Submit selected options for multi-select questions
+        function submitSelectedOptions() {
+            if (selectedOptions.length > 0) {
+                const selectedString = selectedOptions.join(', ');
+                sendMessage(selectedString);
+            }
+        }
+
+        // On page load, send an empty message to start the chat
+        window.onload = function() {
+            sendMessage('');
+        };
+
+        // Handle user pressing enter in the input box
+        inputBox.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && inputBox.value.trim() !== '') {
+                sendMessage(inputBox.value);
+            }
+        });
+    </script>
+</body>
+</html>

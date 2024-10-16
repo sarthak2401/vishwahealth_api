@@ -1,0 +1,91 @@
+import json
+from datasets import Dataset
+
+# Assuming you have your JSON data
+json_data = [
+    {
+        "bot": "Please provide your email ID.",
+        "user": "user@example.com"
+    },
+    {
+        "bot": "Could you please confirm your name?",
+        "user": "John Doe"
+    },
+    {
+        "bot": "How old are you?",
+        "user": "45"
+    },
+    {
+        "bot": "What is your gender? (Options: Male, Female, Other)",
+        "user": "Male"
+    },
+    {
+        "bot": "Are you suffering from diabetes? (Options: Yes, No)",
+        "user": "Yes"
+    },
+    {
+        "bot": "Do you have Type 1 or Type 2 diabetes?",
+        "user": "Type 2"
+    },
+    {
+        "bot": "Can you share your symptoms? You can select any of the highlighted symptoms below:",
+        "user": "Frequent urination and blurred vision"
+    },
+    {
+        "bot": "Do you smoke? (Options: Yes, No)",
+        "user": "No"
+    },
+    {
+        "bot": "Do you have hypertension or high blood pressure? (Options: Yes, No)",
+        "user": "Yes"
+    },
+    {
+        "bot": "Have you had any heart-related problems? (Options: Yes, No)",
+        "user": "No"
+    },
+    {
+        "bot": "Do you take aspirin? (Options: Yes, No)",
+        "user": "Yes"
+    },
+    {
+        "bot": "What is your current weight?",
+        "user": "78 kg"
+    },
+    {
+        "bot": "What is your height?",
+        "user": "172 cm"
+    },
+    {
+        "bot": "Do you experience low blood sugar? (Options: Yes, No)",
+        "user": "No"
+    },
+    {
+        "bot": "Do you experience any sleep-related issues? (Options: Yes, No)",
+        "user": "Yes, I have trouble falling asleep."
+    },
+    {
+        "bot": "Have you had any of the following examinations in the last year: Eye check-up, Foot examination, or Dental examination?",
+        "user": "Yes, I had an eye check-up."
+    },
+    {
+        "bot": "Can you upload your prescriptions? (Options: Yes, No)",
+        "user": "Yes"
+    },
+    {
+        "bot": "Can you upload your medical reports? (Options: Yes, No)",
+        "user": "No"
+    },
+    {
+        "bot": "Thank you for your responses. We will update your doctor.",
+        "user": "Thank you."
+    }
+]
+
+
+# Convert the JSON into conversational text format
+conversations = []
+for pair in json_data:
+    conversations.append(pair["bot"] + " " + pair["user"])
+
+# Convert to Hugging Face dataset
+dataset = Dataset.from_dict({"text": conversations})

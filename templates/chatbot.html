@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #chatbox {
+            height: 300px;
+            overflow-y: scroll;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #fafafa;
+        }
+
+        #user-input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+
+        #submit-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #submit-btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Health Chatbot</h1>
+        <div id="chatbox"></div>
+        <input type="text" id="user-input" placeholder="Type your response..." />
+        <button id="submit-btn">Send</button>
+    </div>
+
+    <script>
+        let user_id = '';
+        const chatbox = document.getElementById('chatbox');
+        const input = document.getElementById('user-input');
+        const button = document.getElementById('submit-btn');
+
+        // Function to append messages to the chatbox
+        function appendMessage(sender, message) {
+            const msg = document.createElement('p');
+            msg.textContent = sender + ": " + message;
+            chatbox.appendChild(msg);
+            chatbox.scrollTop = chatbox.scrollHeight;
+        }
+
+        // Function to send POST request to the server
+        function sendMessage() {
+            const userInput = input.value;
+            input.value = '';  // Clear the input field
+
+            appendMessage("You", userInput);
+
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    message: userInput,
+                    user_id: user_id
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                user_id = data.user_id;
+                appendMessage("Bot", data.response);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Event listener for the send button
+        button.addEventListener('click', sendMessage);
+
+        // Allow pressing "Enter" to submit
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Start the conversation by sending an empty message
+        sendMessage();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,14 @@
+[
+  {
+    "prompt": "I have diabetes.",
+    "response": "How long have you had diabetes?"
+  },
+  {
+    "prompt": "I have a family history of heart disease.",
+    "response": "Do you have any symptoms of heart disease?"
+  },
+  {
+    "prompt": "My name is John.",
+    "response": "Nice to meet you, John. How can I assist you with your health concerns?"
+  }
+]

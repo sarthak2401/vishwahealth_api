@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        .chat-container {
+            width: 50%;
+            margin: 0 auto;
+        }
+
+        .chat-box {
+            border: 1px solid #ccc;
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin: 10px 0;
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.bot {
+            text-align: left;
+        }
+
+        .button-container {
+            margin: 10px 0;
+        }
+
+        .option-button {
+            padding: 10px;
+            margin: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .option-button:hover {
+            background-color: #0056b3;
+        }
+
+        #input-box {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        #upload-box {
+            display: none;
+            margin: 10px 0;
+        }
+
+        #submit-button {
+            padding: 10px;
+            margin: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will go here -->
+        </div>
+        <div class="button-container" id="button-container"></div>
+        <input type="text" id="input-box" placeholder="Type a message..." style="display: none;" />
+        <input type="file" id="upload-box" style="display: none;" />
+        <button id="submit-button" style="display: none;" onclick="submitSelectedOptions()">Submit</button>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const buttonContainer = document.getElementById('button-container');
+        const inputBox = document.getElementById('input-box');
+        const uploadBox = document.getElementById('upload-box');
+        const submitButton = document.getElementById('submit-button');
+        let selectedOptions = [];
+        let userId = '';
+
+        // Add message to chat box
+        function addMessage(content, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+            messageDiv.textContent = content;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+        }
+
+        // Function to handle file uploads as soon as a file is selected
+        function handleFileUpload(file) {
+            const formData = new FormData();
+            formData.append('file', file);  // Attach the file
+            formData.append('user_id', userId);  // Attach the user_id
+
+            // Log to ensure file and user_id are present
+            console.log('File being sent:', file);
+            console.log('User ID being sent:', userId);
+
+            // Check if userId exists before uploading
+            if (!userId) {
+                console.error('user_id is missing!');
+                return;
+            }
+
+            // Send the file and user_id to the /upload endpoint
+            fetch('/upload', {
+                method: 'POST',
+                body: formData,  // FormData is used for file uploads
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('File upload response:', data);
+                addMessage(data.response, 'bot');  // Add bot response after upload
+            })
+            .catch(error => {
+                console.error('File upload failed:', error);
+            });
+        }
+
+        // Function to detect file selection
+        function detectFileSelection() {
+            const file = uploadBox.files[0];  // Get the selected file
+            if (file) {
+                console.log('File selected:', file);
+                handleFileUpload(file);  // Call file upload function when a file is selected
+            }
+        }
+
+        // Function to send a message or file to the backend
+        function sendMessage(message) {
+            addMessage(message, 'user');
+
+            // Handle file upload
+            if (message instanceof File) {
+                handleFileUpload(message);
+            } else {
+                inputBox.value = '';
+
+                // Send text message to /chat endpoint
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message, user_id: userId }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    userId = data.user_id;  // Keep track of user_id
+                    addMessage(data.response, 'bot');
+                    handleOptions(data.response);  // Handle button-based options if any
+                });
+            }
+        }
+
+        // Handle response that may include buttons (Yes/No, multiple options, or file upload)
+        function handleOptions(response) {
+            buttonContainer.innerHTML = ''; // Clear previous buttons
+            selectedOptions = [];  // Clear selected options
+
+            if (response.includes('Options:')) {
+                const optionsText = response.split('Options: ')[1];  // Extract options from response
+                const options = optionsText.split(', ');  // Split options into an array
+
+                options.forEach(option => {
+                    const button = document.createElement('button');
+                    button.textContent = option;
+                    button.classList.add('option-button');
+                    button.addEventListener('click', () => sendMessage(option.toLowerCase()));  // Convert button text to lowercase before sending
+                    buttonContainer.appendChild(button);
+                });
+
+                // Show the file upload input if the bot asks for prescriptions or medical reports
+                if (response.includes('upload your prescriptions') || response.includes('upload your medical reports')) {
+                    uploadBox.style.display = 'block';  // Show file upload option
+                    uploadBox.onchange = detectFileSelection;  // Detect file selection and trigger file upload
+                } else {
+                    uploadBox.style.display = 'none';  // Hide file upload when not needed
+                }
+
+                inputBox.style.display = 'none';  // Hide the input box when buttons or file uploads are present
+            } else {
+                inputBox.style.display = 'block';  // Show the input box for free text response
+                uploadBox.style.display = 'none';  // Hide the file upload
+            }
+        }
+
+        // On page load, send an empty message to start the chat
+        window.onload = function() {
+            sendMessage('');
+        };
+
+        // Handle user pressing enter in the input box
+        inputBox.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && inputBox.value.trim() !== '') {
+                sendMessage(inputBox.value);
+            }
+        });
+    </script>
+</body>
+</html>
